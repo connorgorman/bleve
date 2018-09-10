@@ -546,6 +546,8 @@ func (i *indexImpl) SearchInContext(ctx context.Context, req *SearchRequest) (sr
 			if err == nil && doc != nil {
 				if len(req.Fields) > 0 {
 					fieldsToLoad := deDuplicate(req.Fields)
+
+					fieldsToValueCounts := make(map[string]uint32, len(fieldsToLoad))
 					for _, f := range fieldsToLoad {
 						for _, docF := range doc.Fields {
 							if f == "*" || docF.Name() == f {
@@ -579,6 +581,24 @@ func (i *indexImpl) SearchInContext(ctx context.Context, req *SearchRequest) (sr
 								}
 								if value != nil {
 									hit.AddFieldValue(docF.Name(), value)
+
+									fieldValueMatches := false
+									if locationsMap, ok := hit.Locations[docF.Name()]; ok {
+										fieldArrayPositions := search.ArrayPositions(docF.ArrayPositions())
+									LocationMap:
+										for _, locations := range locationsMap {
+											for _, loc := range locations {
+												if loc.ArrayPositions.Equals(fieldArrayPositions) {
+													fieldValueMatches = true
+													break LocationMap
+												}
+											}
+										}
+									}
+									if fieldValueMatches {
+										hit.FieldIndices[docF.Name()] = append(hit.FieldIndices[docF.Name()], fieldsToValueCounts[docF.Name()])
+									}
+									fieldsToValueCounts[docF.Name()] = fieldsToValueCounts[docF.Name()] + 1
 								}
 							}
 						}

@@ -100,6 +100,12 @@ type DocumentMatch struct {
 	// fields as float64s and date fields as time.RFC3339 formatted strings.
 	Fields map[string]interface{} `json:"fields,omitempty"`
 
+	// FieldIndices is a companion array to Fields, which returns the indices of
+	// field values that actually match the query.
+	// Fields will return a []interface{} if there is more than one value for a given field,
+	// and FieldIndices will index into that slice.
+	FieldIndices map[string][]uint32
+
 	// if we load the document for this hit, remember it so we dont load again
 	Document *document.Document `json:"-"`
 
