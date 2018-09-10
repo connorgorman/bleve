@@ -119,6 +119,22 @@ type DocumentMatch struct {
 	FieldTermLocations []FieldTermLocation `json:"-"`
 }
 
+func (dm *DocumentMatch) FieldMatches(field document.Field) bool {
+	locationsMap, ok := dm.Locations[field.Name()]
+	if !ok {
+		return false
+	}
+	fieldArrayPositions := ArrayPositions(field.ArrayPositions())
+	for _, locations := range locationsMap {
+		for _, loc := range locations {
+			if loc.ArrayPositions.Equals(fieldArrayPositions) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func (dm *DocumentMatch) AddFieldValue(name string, value interface{}) {
 	if dm.Fields == nil {
 		dm.Fields = make(map[string]interface{})

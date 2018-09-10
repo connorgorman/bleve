@@ -582,20 +582,10 @@ func (i *indexImpl) SearchInContext(ctx context.Context, req *SearchRequest) (sr
 								if value != nil {
 									hit.AddFieldValue(docF.Name(), value)
 
-									fieldValueMatches := false
-									if locationsMap, ok := hit.Locations[docF.Name()]; ok {
-										fieldArrayPositions := search.ArrayPositions(docF.ArrayPositions())
-									LocationMap:
-										for _, locations := range locationsMap {
-											for _, loc := range locations {
-												if loc.ArrayPositions.Equals(fieldArrayPositions) {
-													fieldValueMatches = true
-													break LocationMap
-												}
-											}
+									if hit.FieldMatches(docF) {
+										if hit.FieldIndices == nil {
+											hit.FieldIndices = make(map[string][]uint32, 1)
 										}
-									}
-									if fieldValueMatches {
 										hit.FieldIndices[docF.Name()] = append(hit.FieldIndices[docF.Name()], fieldsToValueCounts[docF.Name()])
 									}
 									fieldsToValueCounts[docF.Name()] = fieldsToValueCounts[docF.Name()] + 1
