@@ -118,7 +118,7 @@ func (i *IndexSnapshot) newIndexSnapshotFieldDict(field string, makeItr func(i s
 	results := make(chan *asynchSegmentResult)
 	for index, segment := range i.segment {
 		go func(index int, segment *SegmentSnapshot) {
-			dict, err := segment.Dictionary(field)
+			dict, err := segment.segment.Dictionary(field)
 			if err != nil {
 				results <- &asynchSegmentResult{err: err}
 			} else {
@@ -434,7 +434,7 @@ func (i *IndexSnapshot) TermFieldReader(term []byte, field string, includeFreq,
 	if rv.dicts == nil {
 		rv.dicts = make([]segment.TermDictionary, len(i.segment))
 		for i, segment := range i.segment {
-			dict, err := segment.Dictionary(field)
+			dict, err := segment.segment.Dictionary(field)
 			if err != nil {
 				return nil, err
 			}
@@ -442,8 +442,8 @@ func (i *IndexSnapshot) TermFieldReader(term []byte, field string, includeFreq,
 		}
 	}
 
-	for i := range i.segment {
-		pl, err := rv.dicts[i].PostingsList(term, nil, rv.postings[i])
+	for i, segment := range i.segment {
+		pl, err := rv.dicts[i].PostingsList(term, segment.deleted, rv.postings[i])
 		if err != nil {
 			return nil, err
 		}
@@ -472,6 +472,14 @@ func (i *IndexSnapshot) allocTermFieldReaderDicts(field string) (tfr *IndexSnaps
 }
 
 func (i *IndexSnapshot) recycleTermFieldReader(tfr *IndexSnapshotTermFieldReader) {
+	i.parent.rootLock.RLock()
+	obsolete := i.parent.root != i
+	i.parent.rootLock.RUnlock()
+	if obsolete {
+		// if we're not the current root (mutations happened), don't bother recycling
+		return
+	}
+
 	i.m2.Lock()
 	if i.fieldTFRs == nil {
 		i.fieldTFRs = map[string][]*IndexSnapshotTermFieldReader{}
@@ -646,7 +654,7 @@ func (i *IndexSnapshot) DumpFields() chan interface{} {
 
 // subtractStrings returns set a minus elements of set b.
 func subtractStrings(a, b []string) []string {
-	if len(b) <= 0 {
+	if len(b) == 0 {
 		return a
 	}
 
