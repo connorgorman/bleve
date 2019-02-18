@@ -106,9 +106,6 @@ type DocumentMatch struct {
 	// corresponding to each element in Fields.
 	FieldArrayPositions map[string][]ArrayPositions
 
-	// if we load the document for this hit, remember it so we dont load again
-	Document *document.Document `json:"-"`
-
 	// used to maintain natural index order
 	HitNumber uint64 `json:"-"`
 
