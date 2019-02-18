@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/blevesearch/bleve/document"
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/size"
 )
@@ -207,10 +206,6 @@ func (dm *DocumentMatch) Size() int {
 			size.SizeOfPtr
 	}
 
-	if dm.Document != nil {
-		sizeInBytes += dm.Document.Size()
-	}
-
 	return sizeInBytes
 }
 
@@ -292,11 +287,13 @@ type Searcher interface {
 type SearcherOptions struct {
 	Explain            bool
 	IncludeTermVectors bool
+	Score              string
 }
 
 // SearchContext represents the context around a single search
 type SearchContext struct {
 	DocumentMatchPool *DocumentMatchPool
+	Collector         Collector
 }
 
 func (sc *SearchContext) Size() int {
