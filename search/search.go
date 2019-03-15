@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/blevesearch/bleve/document"
 	"github.com/blevesearch/bleve/index"
 	"github.com/blevesearch/bleve/size"
 )
@@ -106,9 +105,6 @@ type DocumentMatch struct {
 	// FieldArrayPositions is a companion map to Fields which returns the array positions
 	// corresponding to each element in Fields.
 	FieldArrayPositions map[string][]ArrayPositions
-
-	// if we load the document for this hit, remember it so we dont load again
-	Document *document.Document `json:"-"`
 
 	// used to maintain natural index order
 	HitNumber uint64 `json:"-"`
@@ -207,10 +203,6 @@ func (dm *DocumentMatch) Size() int {
 			size.SizeOfPtr
 	}
 
-	if dm.Document != nil {
-		sizeInBytes += dm.Document.Size()
-	}
-
 	return sizeInBytes
 }
 
@@ -292,11 +284,13 @@ type Searcher interface {
 type SearcherOptions struct {
 	Explain            bool
 	IncludeTermVectors bool
+	Score              string
 }
 
 // SearchContext represents the context around a single search
 type SearchContext struct {
 	DocumentMatchPool *DocumentMatchPool
+	Collector         Collector
 }
 
 func (sc *SearchContext) Size() int {
